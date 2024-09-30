@@ -26,8 +26,7 @@ class Node:
 
     def create_old_changes(self):
         if not self.is_input:  # creates a list of weight changes with all zeroes
-            self.old_weight_change = [0 for x in
-                                      range(len(self.inputs))]  # so we have a list of weight changes when the first
+            self.old_weight_change = [0 for x in range(len(self.inputs))]  # so we have a list of weight changes when the first
             # momentum calculation is done
 
     def add_connections(self, desired_row, desired_layer, node_list, network__structure):
@@ -139,6 +138,7 @@ def network_creator(node_list, structure_list):
         else:
             for row in range(number_of_nodes):
                 node_list.append(Node(row, layer))  # otherwise initialize as normal
+    return node_list                
 
 
 def connect_all_nodes(nodes, network__structure):
@@ -148,17 +148,16 @@ def connect_all_nodes(nodes, network__structure):
             node_up_to = sum(network__structure[0:(layer_no + 1)])  # gets the number of nodes before the layer
 
             for input_node in nodes[node_up_to:node_up_to + network__structure[layer_no + 1]]:
-                output_node.add_connections(input_node.row, input_node.layer, nodes,
-                                            network__structure)  # connects all the nodes
-
+                output_node.add_connections(input_node.row, input_node.layer, nodes, network__structure)  # connects all the nodes
+    return nodes    
 
 def generate_weights(nodes, reset=False):
     for node in nodes:
         if node.layer != 0:  # if not an input
             for inputs in range(len(node.inputs) + 1):
                 if reset:
-                    node.weights[inputs] = random.gauss(0, len(
-                        node.inputs) ** -0.5)  # generates weights as according to Efficient BackProp, to improve convergence speed
+                    # generates weights as according to Efficient BackProp, to improve convergence speed
+                    node.weights[inputs] = random.gauss(0, len(node.inputs) ** -0.5)
                 else:
                     node.weights.append(random.gauss(0, len(node.inputs) ** -0.5))
             node.weights[0] = 0
@@ -312,7 +311,7 @@ def show(nodes_list, data_list):
 
 
 def unpack_mnist(number_of_images=100):
-    mndata = MNIST('C:\\Users\\magee\\Desktop\\NEA-20190405T164125Z-001\\Method\\MNIST')
+    mndata = MNIST('.\\dataset')
 
     images, labels = mndata.load_training()
 
@@ -377,18 +376,18 @@ def show_output_from_input(nodes_list, data_input):
     print("My guess is", guess)
 
 
-def initialise(network__structure=None, data_list=None, print_time=True, get_network=True):
+def initialise(network__structure=None, data_list=None, print_time=True, get_network=False):
     if network__structure is None:  # If no network structure is given
         network__structure = [768, 400, 400, 10]  # load a default
     if data_list is None:  # If no data is given
-        pattern_number = 1
+        pattern_number = 100
         print("Loading",pattern_number, "images")
         data_list = unpack_mnist(pattern_number)  # Load the MNIST database
 
     print(network__structure)
     nodes = []
-    network_creator(nodes, network__structure)  # Creats instances of node class
-    connect_all_nodes(nodes, network__structure)  # Connects all node layers
+    nodes = network_creator(nodes, network__structure)  # Creates instances of node class
+    nodes = connect_all_nodes(nodes, network__structure)  # Connects all node layers
 
     # !!!
     for node in nodes:
@@ -397,18 +396,20 @@ def initialise(network__structure=None, data_list=None, print_time=True, get_net
     if get_network:  # If the user wants to load a already created network (variable defined at runtime)
         while True:
             try:
-                network__structure, layers = get_file_data(input(
-                    "Please enter the name of the file to be used as input (Without .txt )\n --> "))  # Try and find it
+                network__structure, layers = get_file_data(input("Please enter the name of the file to be used as input (Without .txt )\n --> "))  # Try and find it
                 set_weights(nodes, layers)  # Try and initialize the weights
+                test_list = unpack_mnist(pattern_number)
+                show(nodes, data_list)
                 break
             except:
-                user_input = input(
-                    "An error has occured, would you like to reenter the name Y or N \n--> ")  # Else load default data
+                user_input = input("An error has occured, would you like to reenter the name Y or N \n--> ")  # Else load default data
                 if user_input.lower() in ["y", "true", "yes", "sure", "i would", "okay", "es"]:
                     continue
                 else:
                     generate_weights(nodes)
                     break
+    else:
+        generate_weights(nodes)
 
     default_learning_coefficient = 0.002  # Default learning coefficient, changes speed of learning 0.0033 is a good one
     total_iterations = 0  # Keeps track of the total iterations computed
@@ -423,8 +424,7 @@ def initialise(network__structure=None, data_list=None, print_time=True, get_net
 
     time_taken = time.time() - start  # Saves the time taken
     file = open("timings.txt", "a")
-    file.write("\n" + str(total_iterations) + " iterations of " + str(pattern_number) + " images, completed in " + str(
-        time_taken) + " seconds")
+    file.write("\n" + str(total_iterations) + " iterations of " + str(pattern_number) + " images, completed in " + str(time_taken) + " seconds")
     file.close()
 
     show(nodes, data_list)  # Show output values for specific inputs
